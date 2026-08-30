@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#12305b">
+  <title>等差數列・即時對戰大廳</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17324d;
+      --muted: #63768a;
+      --panel: rgba(255, 255, 255, 0.94);
+      --line: #dbe7f2;
+      --accent: #1268d5;
+      --accent-dark: #0c4da3;
+      --good: #16805f;
+      --warn: #a35b00;
+      --bad: #b6293c;
+      --soft: #eef7ff;
+      --shadow: 0 18px 50px rgba(21, 58, 93, 0.14);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(96, 211, 255, .42), transparent 26rem),
+        radial-gradient(circle at 88% 14%, rgba(152, 255, 192, .38), transparent 28rem),
+        linear-gradient(145deg, #eaf7ff 0%, #f7fff9 52%, #fffaf0 100%);
+    }
+
+    button, input { font: inherit; }
+
+    button {
+      min-height: 48px;
+      border: 0;
+      border-radius: 14px;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: transform .15s ease, opacity .15s ease, box-shadow .15s ease;
+    }
+
+    button:disabled { cursor: wait; opacity: .58; }
+    button:not(:disabled):active { transform: translateY(1px) scale(.99); }
+    button:focus-visible, input:focus-visible { outline: 4px solid rgba(18, 104, 213, .22); outline-offset: 2px; }
+
+    .app-shell {
+      width: min(1040px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 28px 0 52px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .brand-title { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 52px;
+      height: 52px;
+      flex: 0 0 52px;
+      border-radius: 18px;
+      font-size: 28px;
+      background: white;
+      box-shadow: var(--shadow);
+    }
+
+    h1, h2, p { margin-top: 0; }
+    h1 { margin-bottom: 2px; font-size: clamp(1.35rem, 3vw, 2rem); line-height: 1.1; }
+    .brand small { color: var(--muted); }
+
+    .connection-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.78);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      white-space: nowrap;
+      font-size: .9rem;
+    }
+    .connection-dot { width: 9px; height: 9px; border-radius: 50%; background: #8fa2b6; }
+    .connection-pill[data-tone="good"] .connection-dot { background: var(--good); box-shadow: 0 0 0 5px rgba(22,128,95,.12); }
+    .connection-pill[data-tone="bad"] .connection-dot { background: var(--bad); box-shadow: 0 0 0 5px rgba(182,41,60,.1); }
+
+    .screen {
+      display: none;
+      background: var(--panel);
+      border: 1px solid rgba(204, 220, 234, .88);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .screen.active { display: block; }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(240px, .8fr);
+      gap: 28px;
+      align-items: center;
+      padding: clamp(26px, 5vw, 54px);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: #e6f4ff;
+      color: #15518b;
+      font-weight: 750;
+      font-size: .9rem;
+    }
+
+    .hero h2, .panel-heading h2 { font-size: clamp(1.7rem, 5vw, 3.1rem); line-height: 1.08; margin-bottom: 12px; }
+    .hero p, .panel-heading p { color: var(--muted); line-height: 1.75; }
+
+    .login-card {
+      padding: 22px;
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+    .field-label { display: block; font-weight: 800; margin-bottom: 8px; }
+    .text-input {
+      width: 100%;
+      min-height: 52px;
+      padding: 12px 14px;
+      border: 1px solid #bfcfdd;
+      border-radius: 14px;
+      color: var(--ink);
+      background: #fbfdff;
+      font-size: 1rem;
+    }
+    .field-help { margin: 7px 0 16px; color: var(--muted); font-size: .86rem; }
+
+    .primary-btn {
+      width: 100%;
+      padding: 12px 18px;
+      color: white;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      box-shadow: 0 10px 24px rgba(18, 104, 213, .22);
+      font-weight: 850;
+    }
+    .secondary-btn {
+      padding: 10px 16px;
+      border: 1px solid var(--line);
+      color: var(--ink);
+      background: white;
+      font-weight: 750;
+    }
+    .create-btn {
+      padding: 11px 18px;
+      color: #fff;
+      background: linear-gradient(135deg, #16805f, #0f6e70);
+      font-weight: 850;
+      box-shadow: 0 9px 22px rgba(22, 128, 95, .17);
+    }
+
+    .lobby-wrap { padding: clamp(22px, 4vw, 38px); }
+    .lobby-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    .identity strong { display: block; font-size: 1.18rem; }
+    .identity span { color: var(--muted); font-size: .9rem; }
+    .toolbar-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+
+    .panel-heading { margin-bottom: 18px; }
+    .panel-heading h2 { font-size: clamp(1.65rem, 4vw, 2.45rem); }
+
+    .rooms-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 14px;
+    }
+    .room-card {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      min-width: 0;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: #fff;
+    }
+    .room-card-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .room-host { min-width: 0; }
+    .room-host strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1.12rem; }
+    .room-host small { color: var(--muted); }
+    .player-count {
+      flex: 0 0 auto;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: var(--soft);
+      color: #285776;
+      font-weight: 850;
+    }
+    .join-btn {
+      width: 100%;
+      padding: 11px 14px;
+      color: var(--accent-dark);
+      background: #eaf4ff;
+      border: 1px solid #c9e1fa;
+      font-weight: 850;
+    }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      padding: 40px 20px;
+      text-align: center;
+      border: 1px dashed #bfd1df;
+      border-radius: 20px;
+      background: #fbfdff;
+      color: var(--muted);
+    }
+    .empty-state .emoji { display: block; margin-bottom: 8px; font-size: 2.2rem; }
+
+    .center-stage {
+      display: grid;
+      place-items: center;
+      min-height: 430px;
+      padding: 34px 22px;
+      text-align: center;
+    }
+    .stage-card { width: min(650px, 100%); }
+    .stage-icon { font-size: clamp(3.2rem, 10vw, 5.5rem); margin-bottom: 12px; }
+    .stage-card h2 { font-size: clamp(1.8rem, 5vw, 2.8rem); margin-bottom: 10px; }
+    .stage-card p { color: var(--muted); line-height: 1.7; }
+    .waiting-name { display: inline-block; margin-top: 8px; padding: 9px 14px; border-radius: 999px; background: #edf8ff; font-weight: 850; }
+
+    .versus {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: 14px;
+      margin: 24px 0;
+    }
+    .fighter {
+      min-width: 0;
+      padding: 18px 12px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: #fff;
+      font-size: clamp(1.15rem, 4vw, 1.7rem);
+      font-weight: 900;
+      overflow-wrap: anywhere;
+    }
+    .vs-badge { font-weight: 950; color: var(--bad); font-size: 1.35rem; }
+    .success-badge { display: inline-block; padding: 10px 16px; border-radius: 999px; color: #0b6748; background: #ddf7ec; font-weight: 900; }
+    .stage-actions { margin-top: 24px; display: flex; justify-content: center; }
+
+    .message-bar {
+      min-height: 22px;
+      margin: 14px 4px 0;
+      color: var(--muted);
+      text-align: center;
+      font-size: .92rem;
+    }
+    .message-bar[data-tone="bad"] { color: var(--bad); font-weight: 700; }
+    .message-bar[data-tone="good"] { color: var(--good); font-weight: 700; }
+
+    @media (max-width: 720px) {
+      .app-shell { width: min(100% - 18px, 1040px); padding-top: 14px; }
+      .brand { align-items: flex-start; }
+      .brand small { display: none; }
+      .brand-mark { width: 44px; height: 44px; flex-basis: 44px; border-radius: 14px; font-size: 24px; }
+      .hero { grid-template-columns: 1fr; gap: 18px; padding: 24px 18px; }
+      .lobby-wrap { padding: 20px 14px; }
+      .lobby-toolbar { align-items: flex-start; flex-direction: column; }
+      .toolbar-actions { width: 100%; justify-content: stretch; }
+      .toolbar-actions button { flex: 1 1 140px; }
+      .rooms-grid { grid-template-columns: 1fr; }
+      .versus { grid-template-columns: 1fr; }
+      .vs-badge { padding: 2px 0; }
+      .center-stage { min-height: 380px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="brand">
+      <div class="brand-title">
+        <div class="brand-mark" aria-hidden="true">⚔️</div>
+        <div>
+          <h1>等差數列・即時對戰</h1>
+          <small>第一版：網路大廳與雙人配對測試</small>
+        </div>
+      </div>
+      <div class="connection-pill" id="connection-pill" data-tone="neutral" aria-live="polite">
+        <span class="connection-dot" aria-hidden="true"></span>
+        <span id="connection-text">正在載入連線元件…</span>
+      </div>
+    </header>
+
+    <section class="screen active" id="login-screen" aria-labelledby="login-title">
+      <div class="hero">
+        <div>
+          <div class="eyebrow">🎮 不用輸入房號</div>
+          <h2 id="login-title">輸入名字，直接進遊戲大廳</h2>
+          <p>建立自己的房間，或直接點同學已經開好的房間加入。這一版先測試兩台平板是否能透過 Supabase 即時配對。</p>
+        </div>
+        <form class="login-card" id="nickname-form" novalidate>
+          <label class="field-label" for="nickname-input">你的暱稱</label>
+          <input class="text-input" id="nickname-input" name="nickname" type="text" maxlength="20" autocomplete="nickname" placeholder="例如：小明" required>
+          <p class="field-help">1～20 個字即可，不需要註冊帳號。</p>
+          <button class="primary-btn" id="enter-lobby-btn" type="submit" disabled>正在連線…</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="screen" id="lobby-screen" aria-labelledby="lobby-title">
+      <div class="lobby-wrap">
+        <div class="lobby-toolbar">
+          <div class="identity">
+            <span>目前玩家</span>
+            <strong id="current-nickname">—</strong>
+          </div>
+          <div class="toolbar-actions">
+            <button class="secondary-btn" id="refresh-lobby-btn" type="button">↻ 重新整理</button>
+            <button class="create-btn" id="create-room-btn" type="button">＋ 建立我的房間</button>
+          </div>
+        </div>
+
+        <div class="panel-heading">
+          <div class="eyebrow">🟢 即時遊戲大廳</div>
+          <h2 id="lobby-title">等待中的房間</h2>
+          <p>看到想加入的房間，直接按「加入對戰」即可。有人加入後，該房間會自動從大廳消失。</p>
+        </div>
+
+        <div class="rooms-grid" id="rooms-list" aria-live="polite" aria-busy="false"></div>
+      </div>
+    </section>
+
+    <section class="screen" id="waiting-screen" aria-labelledby="waiting-title">
+      <div class="center-stage">
+        <div class="stage-card">
+          <div class="stage-icon" aria-hidden="true">⏳</div>
+          <h2 id="waiting-title">房間建立成功</h2>
+          <p>你的房間已經出現在其他同學的遊戲大廳裡。現在等待第二位玩家直接點進來。</p>
+          <span class="waiting-name" id="waiting-host-name">— 的房間</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="matched-screen" aria-labelledby="matched-title">
+      <div class="center-stage">
+        <div class="stage-card">
+          <div class="stage-icon" aria-hidden="true">🎉</div>
+          <h2 id="matched-title">配對成功！</h2>
+          <div class="versus" aria-label="配對玩家">
+            <div class="fighter" id="matched-player1">玩家 1</div>
+            <div class="vs-badge">VS</div>
+            <div class="fighter" id="matched-player2">玩家 2</div>
+          </div>
+          <span class="success-badge">✓ 第一版連線測試成功</span>
+          <p style="margin-top:18px">下一階段就可以在這個連線骨架上加入等差數列題目、七滴血與攻擊效果。</p>
+          <div class="stage-actions">
+            <button class="secondary-btn" id="back-to-lobby-btn" type="button">回到大廳再測一次</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="message-bar" id="message-bar" role="status" aria-live="polite"></div>
+  </main>
+
+  <script type="module">
+    const SUPABASE_URL = 'https://lzjehqfmvzsmramndooq.supabase.co';
+    const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_OQR1t7L94Vo9aqhySYTTFA_QbfLfU5w';
+    const CLIENT_TOKEN_KEY = 'sequence_battle_client_token';
+
+    const screens = {
+      login: document.getElementById('login-screen'),
+      lobby: document.getElementById('lobby-screen'),
+      waiting: document.getElementById('waiting-screen'),
+      matched: document.getElementById('matched-screen')
+    };
+
+    const nicknameForm = document.getElementById('nickname-form');
+    const nicknameInput = document.getElementById('nickname-input');
+    const enterLobbyBtn = document.getElementById('enter-lobby-btn');
+    const currentNicknameEl = document.getElementById('current-nickname');
+    const roomsList = document.getElementById('rooms-list');
+    const refreshLobbyBtn = document.getElementById('refresh-lobby-btn');
+    const createRoomBtn = document.getElementById('create-room-btn');
+    const waitingHostName = document.getElementById('waiting-host-name');
+    const matchedPlayer1 = document.getElementById('matched-player1');
+    const matchedPlayer2 = document.getElementById('matched-player2');
+    const backToLobbyBtn = document.getElementById('back-to-lobby-btn');
+    const messageBar = document.getElementById('message-bar');
+    const connectionPill = document.getElementById('connection-pill');
+    const connectionText = document.getElementById('connection-text');
+
+    let supabaseClient = null;
+    let nickname = '';
+    let currentScreen = 'login';
+    let currentRoomId = null;
+    let currentSeat = null;
+    let lobbyChannel = null;
+    let gameChannel = null;
+    let busy = false;
+
+    function fallbackUuid() {
+      const bytes = new Uint8Array(16);
+      crypto.getRandomValues(bytes);
+      bytes[6] = (bytes[6] & 0x0f) | 0x40;
+      bytes[8] = (bytes[8] & 0x3f) | 0x80;
+      const hex = [...bytes].map((b) => b.toString(16).padStart(2, '0'));
+      return `${hex.slice(0, 4).join('')}-${hex.slice(4, 6).join('')}-${hex.slice(6, 8).join('')}-${hex.slice(8, 10).join('')}-${hex.slice(10, 16).join('')}`;
+    }
+
+    function getClientToken() {
+      let token = localStorage.getItem(CLIENT_TOKEN_KEY);
+      if (!token) {
+        token = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : fallbackUuid();
+        localStorage.setItem(CLIENT_TOKEN_KEY, token);
+      }
+      return token;
+    }
+
+    function setScreen(name) {
+      Object.entries(screens).forEach(([key, element]) => {
+        element.classList.toggle('active', key === name);
+      });
+      currentScreen = name;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showMessage(text = '', tone = 'neutral') {
+      messageBar.textContent = text;
+      messageBar.dataset.tone = tone;
+    }
+
+    function setConnectionStatus(text, tone = 'neutral') {
+      connectionText.textContent = text;
+      connectionPill.dataset.tone = tone;
+    }
+
+    function setBusy(nextBusy) {
+      busy = nextBusy;
+      createRoomBtn.disabled = nextBusy;
+      refreshLobbyBtn.disabled = nextBusy;
+      document.querySelectorAll('.join-btn').forEach((button) => {
+        button.disabled = nextBusy;
+      });
+    }
+
+    function normalizedNickname(value) {
+      return value.trim();
+    }
+
+    function nicknameIsValid(value) {
+      const clean = normalizedNickname(value);
+      const length = Array.from(clean).length;
+      return length >= 1 && length <= 20;
+    }
+
+    function friendlyError(error, fallback = '發生連線問題，請稍後再試。') {
+      const raw = String(error?.message || error || '');
+      if (raw.includes('ROOM_ALREADY_FULL')) return '這個房間剛剛已被其他同學加入，請選另一個房間。';
+      if (raw.includes('ROOM_NOT_FOUND')) return '這個房間已經不存在，正在重新整理大廳。';
+      if (raw.includes('NICKNAME_REQUIRED')) return '請先輸入暱稱。';
+      if (raw.includes('Failed to fetch') || raw.includes('NetworkError')) return '目前無法連上 Supabase，請檢查網路後再試。';
+      return raw ? `${fallback}（${raw}）` : fallback;
+    }
+
+    function normalizeRpcData(data) {
+      return Array.isArray(data) ? data[0] : data;
+    }
+
+    async function removeChannel(channel) {
+      if (channel && supabaseClient) {
+        try {
+          await supabaseClient.removeChannel(channel);
+        } catch (error) {
+          console.warn('Remove channel failed:', error);
+        }
+      }
+    }
+
+    async function loadLobby() {
+      if (!supabaseClient || currentScreen !== 'lobby') return;
+
+      roomsList.setAttribute('aria-busy', 'true');
+      roomsList.textContent = '';
+      const loading = document.createElement('div');
+      loading.className = 'empty-state';
+      loading.textContent = '正在取得等待中的房間…';
+      roomsList.appendChild(loading);
+
+      const { data, error } = await supabaseClient
+        .from('rooms')
+        .select('id,host_nickname,status,player_count,created_at')
+        .eq('status', 'waiting')
+        .order('created_at', { ascending: true });
+
+      roomsList.setAttribute('aria-busy', 'false');
+
+      if (error) {
+        roomsList.textContent = '';
+        const failed = document.createElement('div');
+        failed.className = 'empty-state';
+        failed.textContent = '目前讀不到遊戲大廳，請按重新整理再試。';
+        roomsList.appendChild(failed);
+        showMessage(friendlyError(error, '遊戲大廳讀取失敗。'), 'bad');
+        return;
+      }
+
+      renderRooms(data || []);
+    }
+
+    function renderRooms(rooms) {
+      roomsList.textContent = '';
+
+      if (rooms.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+
+        const emoji = document.createElement('span');
+        emoji.className = 'emoji';
+        emoji.setAttribute('aria-hidden', 'true');
+        emoji.textContent = '🏕️';
+
+        const text = document.createElement('div');
+        text.textContent = '目前沒有等待中的房間。你可以成為第一個建立房間的人！';
+
+        empty.append(emoji, text);
+        roomsList.appendChild(empty);
+        return;
+      }
+
+      rooms.forEach((room) => {
+        const card = document.createElement('article');
+        card.className = 'room-card';
+
+        const top = document.createElement('div');
+        top.className = 'room-card-top';
+
+        const host = document.createElement('div');
+        host.className = 'room-host';
+        const hostName = document.createElement('strong');
+        hostName.textContent = `${room.host_nickname} 的房間`;
+        const status = document.createElement('small');
+        status.textContent = '等待對手加入';
+        host.append(hostName, status);
+
+        const count = document.createElement('span');
+        count.className = 'player-count';
+        count.textContent = `${room.player_count || 1}/2`;
+
+        top.append(host, count);
+
+        const joinButton = document.createElement('button');
+        joinButton.className = 'join-btn';
+        joinButton.type = 'button';
+        joinButton.textContent = '加入對戰';
+        joinButton.addEventListener('click', () => joinRoom(room.id));
+
+        card.append(top, joinButton);
+        roomsList.appendChild(card);
+      });
+    }
+
+    async function subscribeLobby() {
+      await removeChannel(lobbyChannel);
+      if (!supabaseClient) return;
+
+      lobbyChannel = supabaseClient
+        .channel(`lobby-${getClientToken()}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'rooms' },
+          () => {
+            if (currentScreen === 'lobby') loadLobby();
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') setConnectionStatus('大廳即時連線中', 'good');
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setConnectionStatus('即時連線異常', 'bad');
+        });
+    }
+
+    async function enterLobby() {
+      currentRoomId = null;
+      currentSeat = null;
+      await removeChannel(gameChannel);
+      gameChannel = null;
+      currentNicknameEl.textContent = nickname;
+      setScreen('lobby');
+      showMessage('');
+      await subscribeLobby();
+      await loadLobby();
+    }
+
+    async function createRoom() {
+      if (busy || !supabaseClient) return;
+      setBusy(true);
+      showMessage('正在建立房間…');
+
+      try {
+        const { data, error } = await supabaseClient.rpc('create_room', {
+          p_nickname: nickname,
+          p_client_token: getClientToken()
+        });
+        if (error) throw error;
+
+        const result = normalizeRpcData(data);
+        if (!result?.success || !result?.room_id) {
+          throw new Error('建立房間時沒有取得 room_id');
+        }
+
+        currentRoomId = result.room_id;
+        currentSeat = result.seat || 1;
+        waitingHostName.textContent = `${nickname} 的房間`;
+        await removeChannel(lobbyChannel);
+        lobbyChannel = null;
+        setScreen('waiting');
+        showMessage('房間已公開到遊戲大廳，等待另一位同學加入。', 'good');
+        await watchGameState(currentRoomId);
+      } catch (error) {
+        showMessage(friendlyError(error, '建立房間失敗。'), 'bad');
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function joinRoom(roomId) {
+      if (busy || !supabaseClient) return;
+      setBusy(true);
+      showMessage('正在加入房間…');
+
+      try {
+        const { data, error } = await supabaseClient.rpc('join_room', {
+          p_room_id: roomId,
+          p_nickname: nickname,
+          p_client_token: getClientToken()
+        });
+        if (error) throw error;
+
+        const result = normalizeRpcData(data);
+        if (!result?.success || !result?.room_id) {
+          throw new Error('加入房間時沒有取得 room_id');
+        }
+
+        currentRoomId = result.room_id;
+        currentSeat = result.seat || 2;
+        await removeChannel(lobbyChannel);
+        lobbyChannel = null;
+        waitingHostName.textContent = '正在同步對戰資料…';
+        setScreen('waiting');
+        await watchGameState(currentRoomId);
+      } catch (error) {
+        const text = friendlyError(error, '加入房間失敗。');
+        showMessage(text, 'bad');
+        setScreen('lobby');
+        await subscribeLobby();
+        await loadLobby();
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function fetchGameState(roomId) {
+      if (!supabaseClient || !roomId) return;
+      const { data, error } = await supabaseClient
+        .from('game_state')
+        .select('room_id,status,player1_name,player2_name,player1_hp,player2_hp,started_at')
+        .eq('room_id', roomId)
+        .maybeSingle();
+
+      if (error) {
+        showMessage(friendlyError(error, '讀取配對狀態失敗。'), 'bad');
+        return;
+      }
+
+      if (data) handleGameState(data);
+    }
+
+    function handleGameState(state) {
+      if (!state || state.room_id !== currentRoomId) return;
+      if (state.status === 'playing' && state.player1_name && state.player2_name) {
+        showMatched(state);
+      }
+    }
+
+    async function watchGameState(roomId) {
+      await removeChannel(gameChannel);
+      if (!supabaseClient) return;
+
+      gameChannel = supabaseClient
+        .channel(`game-${roomId}-${getClientToken()}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'game_state',
+            filter: `room_id=eq.${roomId}`
+          },
+          (payload) => handleGameState(payload.new)
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            setConnectionStatus('房間即時連線中', 'good');
+            fetchGameState(roomId);
+          }
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            setConnectionStatus('房間即時連線異常', 'bad');
+          }
+        });
+
+      await fetchGameState(roomId);
+    }
+
+    function showMatched(gameState) {
+      matchedPlayer1.textContent = gameState.player1_name;
+      matchedPlayer2.textContent = gameState.player2_name;
+      setScreen('matched');
+      showMessage(`已完成配對，你是 Player ${currentSeat || '—'}。`, 'good');
+    }
+
+    nicknameForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!supabaseClient) {
+        showMessage('Supabase 尚未連線完成，請稍候。', 'bad');
+        return;
+      }
+
+      const clean = normalizedNickname(nicknameInput.value);
+      if (!nicknameIsValid(clean)) {
+        showMessage('暱稱請輸入 1～20 個字。', 'bad');
+        nicknameInput.focus();
+        return;
+      }
+
+      nickname = clean;
+      await enterLobby();
+    });
+
+    refreshLobbyBtn.addEventListener('click', () => loadLobby());
+    createRoomBtn.addEventListener('click', () => createRoom());
+    backToLobbyBtn.addEventListener('click', () => enterLobby());
+
+    window.addEventListener('online', () => {
+      setConnectionStatus('網路已恢復，正在同步…');
+      if (currentScreen === 'lobby') loadLobby();
+      if (currentRoomId) fetchGameState(currentRoomId);
+    });
+
+    window.addEventListener('offline', () => {
+      setConnectionStatus('裝置目前離線', 'bad');
+      showMessage('目前沒有網路連線，恢復網路後會再同步。', 'bad');
+    });
+
+    async function initialize() {
+      try {
+        getClientToken();
+        const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+        supabaseClient = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+          auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+        });
+        setConnectionStatus('Supabase 已就緒', 'good');
+        enterLobbyBtn.disabled = false;
+        enterLobbyBtn.textContent = '進入遊戲大廳';
+        nicknameInput.focus();
+      } catch (error) {
+        console.error(error);
+        setConnectionStatus('Supabase 載入失敗', 'bad');
+        enterLobbyBtn.disabled = true;
+        enterLobbyBtn.textContent = '連線元件載入失敗';
+        showMessage('無法載入 Supabase 元件，請確認網路正常後重新整理頁面。', 'bad');
+      }
+    }
+
+    initialize();
+  </script>
+</body>
+</html>
