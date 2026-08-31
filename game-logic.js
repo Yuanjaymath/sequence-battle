@@ -9,6 +9,34 @@ export const BATTLE_ANIMALS = [
   { id: 'frog', emoji: '🐸', name: '電磁青蛙' },
 ];
 
+const SUBSCRIPT_DIGITS = Object.freeze({
+  '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
+  '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉',
+});
+
+export function toSubscript(value) {
+  return String(value).split('').map((digit) => SUBSCRIPT_DIGITS[digit] ?? digit).join('');
+}
+
+export function formatTerm(index) {
+  return `a${toSubscript(index)}`;
+}
+
+export const WELCOME_PHRASES = Object.freeze([
+  '準備開戰了嗎？',
+  '今天也來挑戰一下吧！',
+  '數列高手登場！',
+  '進大廳找個對手吧！',
+  '今天誰才是等差數列王者？',
+  '選好名字，準備出招！',
+]);
+
+export function pickWelcomeContent(rng = Math.random) {
+  const animalIndex = Math.min(Math.floor(rng() * BATTLE_ANIMALS.length), BATTLE_ANIMALS.length - 1);
+  const phraseIndex = Math.min(Math.floor(rng() * WELCOME_PHRASES.length), WELCOME_PHRASES.length - 1);
+  return { animal: BATTLE_ANIMALS[animalIndex], phrase: WELCOME_PHRASES[phraseIndex] };
+}
+
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -30,7 +58,7 @@ export function generateNthTermQuestion() {
   return {
     type: 'nth-term',
     label: '找第 n 項',
-    prompt: `已知等差數列的第一項 a₁ = ${a1}，公差 d = ${d}，求第 ${n} 項 a${n}。`,
+    prompt: `已知等差數列的第一項 a₁ = ${a1}，公差 d = ${d}，求第 ${n} 項 ${formatTerm(n)}。`,
     answer: term(a1, d, n),
     meta: { a1, d, n },
   };
@@ -46,7 +74,7 @@ export function generateDifferenceQuestion() {
   return {
     type: 'difference',
     label: '求公差',
-    prompt: `已知等差數列中 a${m} = ${am}，a${n} = ${an}，求公差 d。`,
+    prompt: `已知等差數列中 ${formatTerm(m)} = ${am}，${formatTerm(n)} = ${an}，求公差 d。`,
     answer: d,
     meta: { a1, d, m, n, am, an },
   };
@@ -64,7 +92,7 @@ export function generateMissingTermQuestion() {
   return {
     type: 'missing-term',
     label: '由兩項求另一項',
-    prompt: `已知等差數列中 a${m} = ${am}，a${n} = ${an}，求 a${targetN}。`,
+    prompt: `已知等差數列中 ${formatTerm(m)} = ${am}，${formatTerm(n)} = ${an}，求 ${formatTerm(targetN)}。`,
     answer: term(a1, d, targetN),
     meta: { a1, d, m, n, targetN, am, an },
   };

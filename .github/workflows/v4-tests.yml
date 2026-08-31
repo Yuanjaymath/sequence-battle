@@ -1,0 +1,40 @@
+name: V4 tests
+
+on:
+  push:
+    branches:
+      - feature/sequence-battle-v4
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run tests
+        run: node --test tests/*.test.mjs
+      - name: Check JavaScript syntax
+        run: |
+          node --check game-logic.js
+          node --check app.js
+      - name: Check unique HTML ids
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFile } from 'node:fs/promises';
+          const html = await readFile('index.html', 'utf8');
+          const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]);
+          const duplicates = [...new Set(ids.filter((id, index) => ids.indexOf(id) !== index))];
+          if (duplicates.length) {
+            console.error('Duplicate ids:', duplicates.join(', '));
+            process.exit(1);
+          }
+          console.log(`Unique ids: ${ids.length}`);
+          NODE
