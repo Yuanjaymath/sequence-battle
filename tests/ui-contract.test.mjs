@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const app = await readFile(new URL('../app.js', import.meta.url), 'utf8');
+const gameLogic = await readFile(new URL('../game-logic.js', import.meta.url), 'utf8');
 const source = `${html}\n${app}`;
 
 test('start screen uses database-connected copy and welcome animal UI', () => {
@@ -113,8 +114,10 @@ test('waiting host pagehide sends best-effort keepalive cancel request', () => {
   assert.match(app, /currentSeat!==1\|\|currentScreen!=='waiting'\|\|!currentRoomId/);
 });
 
-test('sword glyph is inverted inside its motion container so the blade leads the target', () => {
-  assert.match(html, /\.sword-glyph\s*\{[^}]*transform\s*:\s*rotate\(180deg\)/s);
-  assert.match(html, /id="sword-left"[^>]*><span class="sword-glyph">🗡️<\/span><\/div>/);
-  assert.match(html, /id="sword-right"[^>]*><span class="sword-glyph">🗡️<\/span><\/div>/);
+test('sword glyph orientation hotfix rotates only the emoji, not the motion container', () => {
+  assert.match(gameLogic, /function orientSwordGlyphs/);
+  assert.match(gameLogic, /\['sword-left','sword-right'\]/);
+  assert.match(gameLogic, /glyph\.style\.transform='rotate\(180deg\)'/);
+  assert.match(gameLogic, /sword\.replaceChildren\(glyph\)/);
+  assert.match(gameLogic, /typeof document!=='undefined'/);
 });
