@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const app = await readFile(new URL('../app.js', import.meta.url), 'utf8');
+const gameLogic = await readFile(new URL('../game-logic.js', import.meta.url), 'utf8');
 const source = `${html}\n${app}`;
 
 test('start screen uses database-connected copy and welcome animal UI', () => {
@@ -111,4 +112,12 @@ test('waiting host pagehide sends best-effort keepalive cancel request', () => {
   assert.match(app, /apikey:SUPABASE_PUBLISHABLE_KEY/);
   assert.doesNotMatch(app, /Authorization:\s*`Bearer \$\{SUPABASE_PUBLISHABLE_KEY\}`/);
   assert.match(app, /currentSeat!==1\|\|currentScreen!=='waiting'\|\|!currentRoomId/);
+});
+
+test('sword glyph orientation hotfix rotates only the emoji, not the motion container', () => {
+  assert.match(gameLogic, /function orientSwordGlyphs/);
+  assert.match(gameLogic, /\['sword-left','sword-right'\]/);
+  assert.match(gameLogic, /glyph\.style\.transform='rotate\(180deg\)'/);
+  assert.match(gameLogic, /sword\.replaceChildren\(glyph\)/);
+  assert.match(gameLogic, /typeof document!=='undefined'/);
 });
