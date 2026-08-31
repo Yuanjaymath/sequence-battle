@@ -112,3 +112,9 @@ test('waiting host pagehide sends best-effort keepalive cancel request', () => {
   assert.doesNotMatch(app, /Authorization:\s*`Bearer \$\{SUPABASE_PUBLISHABLE_KEY\}`/);
   assert.match(app, /currentSeat!==1\|\|currentScreen!=='waiting'\|\|!currentRoomId/);
 });
+
+test('sword glyph is inverted inside its motion container so the blade leads the target', () => {
+  assert.match(html, /\.sword-glyph\s*\{[^}]*transform\s*:\s*rotate\(180deg\)/s);
+  assert.match(html, /id="sword-left"[^>]*><span class="sword-glyph">🗡️<\/span><\/div>/);
+  assert.match(html, /id="sword-right"[^>]*><span class="sword-glyph">🗡️<\/span><\/div>/);
+});
