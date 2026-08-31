@@ -71,3 +71,44 @@ test('portrait rotate prompt is fixed to the viewport', () => {
 test('index loads the application module from app.js', () => {
   assert.match(html, /<script type="module" src="\.\/app\.js"><\/script>/);
 });
+
+test('lobby uses live-room RPC and schedules TTL refresh', () => {
+  assert.match(app, /rpc\('list_live_rooms'\)/);
+  assert.match(app, /expires_in_ms/);
+  assert.match(app, /scheduleLobbyExpiryRefresh/);
+  assert.doesNotMatch(app, /from\('rooms'\)\.select\('id,host_nickname,status,player_count,created_at'\)\.eq\('status','waiting'\)/);
+});
+
+test('host waiting screen sends heartbeat every three seconds', () => {
+  assert.match(app, /HOST_HEARTBEAT_INTERVAL_MS\s*=\s*3000/);
+  assert.match(app, /rpc\('heartbeat_room'/);
+  assert.match(app, /startHostHeartbeat/);
+  assert.match(app, /stopHostHeartbeat/);
+  assert.match(app, /setInterval\([\s\S]*HOST_HEARTBEAT_INTERVAL_MS/);
+});
+
+test('join waits for a two-second host acknowledgement before join_room', () => {
+  assert.match(app, /JOIN_PROBE_TIMEOUT_MS\s*=\s*2000/);
+  assert.match(app, /confirmHostOnline/);
+  assert.match(app, /event:'join_probe'/);
+  assert.match(app, /event:'host_ack'/);
+  const joinStart=app.indexOf('async function joinRoom');
+  const joinEnd=app.indexOf('async function cancelCurrentRoom',joinStart);
+  const joinBody=app.slice(joinStart,joinEnd);
+  assert.ok(joinBody.indexOf('confirmHostOnline') < joinBody.indexOf("rpc('join_room'"));
+});
+
+test('persistent game Presence uses one shared topic per room', () => {
+  assert.match(app, /channel\(`game-\$\{roomId\}`/);
+  assert.doesNotMatch(app, /game-\$\{roomId\}-\$\{getClientToken\(\)\}/);
+  assert.match(app, /presence:\{key:getClientToken\(\)\}/);
+});
+
+test('waiting host pagehide sends best-effort keepalive cancel request', () => {
+  assert.match(app, /addEventListener\('pagehide'/);
+  assert.match(app, /rest\/v1\/rpc\/cancel_room/);
+  assert.match(app, /keepalive:true/);
+  assert.match(app, /apikey:SUPABASE_PUBLISHABLE_KEY/);
+  assert.doesNotMatch(app, /Authorization:\s*`Bearer \$\{SUPABASE_PUBLISHABLE_KEY\}`/);
+  assert.match(app, /currentSeat!==1\|\|currentScreen!=='waiting'\|\|!currentRoomId/);
+});
