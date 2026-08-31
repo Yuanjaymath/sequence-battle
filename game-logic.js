@@ -193,3 +193,18 @@ export function presenceHasOpponent(presenceState, currentSeat) {
     .flatMap((entries) => Array.isArray(entries) ? entries : [])
     .some((entry) => Number(entry?.seat) === opponentSeat);
 }
+
+export function orientSwordGlyphs(root) {
+  for (const id of ['sword-left','sword-right']) {
+    const sword = root?.getElementById?.(id);
+    if (!sword || sword.querySelector?.('.sword-glyph')) continue;
+    const glyph = root.createElement('span');
+    glyph.className = 'sword-glyph';
+    glyph.style.display = 'block';
+    glyph.style.transform='rotate(180deg)';
+    glyph.textContent = sword.textContent;
+    sword.replaceChildren(glyph);
+  }
+}
+
+if (typeof document!=='undefined') orientSwordGlyphs(document);
