@@ -36,9 +36,16 @@ test('list_live_rooms soft-finishes stale rooms and returns server TTL', () => {
   assert.match(sql, /grant execute on function public\.list_live_rooms\(\)/i);
 });
 
-test('waiting-to-playing guard raises HOST_OFFLINE for stale hosts', () => {
-  assert.match(sql, /create or replace function public\.guard_room_host_liveness/i);
-  assert.match(sql, /before update on public\.rooms/i);
-  assert.match(sql, /HOST_OFFLINE/);
-  assert.match(sql, /interval '10 seconds'/i);
+test('phase 4 capability migration does not activate the HOST_OFFLINE guard', () => {
+  assert.doesNotMatch(sql, /create or replace function public\.guard_room_host_liveness/i);
+  assert.doesNotMatch(sql, /create trigger rooms_guard_host_liveness/i);
+  assert.doesNotMatch(sql, /raise exception 'HOST_OFFLINE'/i);
+});
+
+test('phase 4 guard is a separate second-stage migration', async () => {
+  const guard = await readFile(new URL('../supabase-phase4-guard.sql', import.meta.url), 'utf8');
+  assert.match(guard, /create or replace function public\.guard_room_host_liveness/i);
+  assert.match(guard, /before update on public\.rooms/i);
+  assert.match(guard, /HOST_OFFLINE/);
+  assert.match(guard, /interval '10 seconds'/i);
 });
